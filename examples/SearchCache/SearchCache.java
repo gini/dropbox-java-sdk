@@ -418,7 +418,7 @@ public class SearchCache
 
                 State state = new State(appKey, accessToken, tree);
 
-                JsonThing jcursor = jm.getMaybe("cursor");
+                JsonThing jcursor = jm.getOrNull("cursor");
                 if (jcursor != null) {
                     state.cursor = jcursor.expectString();
                 }

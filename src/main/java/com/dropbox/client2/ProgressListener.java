@@ -68,6 +68,7 @@ public abstract class ProgressListener {
         public ProgressHttpEntity(final HttpEntity wrapped,
                 final ProgressListener listener) {
             super(wrapped);
+            if (listener == null) throw new IllegalArgumentException("'listener' is null");
             this.listener = listener;
             length = wrapped.getContentLength();
         }

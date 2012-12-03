@@ -551,7 +551,7 @@ public class DropboxAPI<SESS_T extends Session> {
             // Now set the input stream on FilterInputStream. This will throw
             // an IOException itself if something goes wrong.
             try {
-                in = entity.getContent();
+                super.in = entity.getContent();
             } catch (IOException e) {
                 throw new DropboxIOException(e);
             }
@@ -569,9 +569,11 @@ public class DropboxAPI<SESS_T extends Session> {
          */
         @Override
         public void close() throws IOException {
-            // Aborting the request also closes the input stream that it
-            // creates (the in variable). Do not try to close it again.
-            request.abort();
+            try {
+                request.abort();
+            } finally {
+                super.close();
+            }
         }
 
         /**
@@ -751,6 +753,7 @@ public class DropboxAPI<SESS_T extends Session> {
      *     DropboxAPI api = ...
      *     File bigFile = new File("99mb.avi");
      *     FileInputStream in = new FileInputStream(bigFile);
+     *     DropboxAPI.Entry uploadedFileMetadata;
      *     try {
      *         DropboxAPI.ChunkedUploader uploader = api.getChunkedUploader(in, bigFile.length());
      *         int retryCounter = 0;
@@ -758,11 +761,12 @@ public class DropboxAPI<SESS_T extends Session> {
      *             try {
      *                 uploader.upload();
      *             } catch (DropboxException e) {
-     *                 if (retryCounter > MAX_RETRIES) break;  // Give up after a while.
+     *                 if (retryCounter &gt; MAX_RETRIES) break;  // Give up after a while.
      *                 retryCounter++;
      *                 // Maybe wait a few seconds before retrying?
      *             }
      *         }
+     *         uploadedFileMetadata = uploader.finish("/Videos/99mb.avi", null);
      *     } finally {
      *         in.close();
      *     }
@@ -968,10 +972,14 @@ public class DropboxAPI<SESS_T extends Session> {
         session.sign(req);
 
         InputStreamEntity ise = new InputStreamEntity(is, length);
-        ProgressHttpEntity pe = new ProgressHttpEntity(ise, listener);
         ise.setContentEncoding("application/octet-stream");
         ise.setChunked(false);
-        req.setEntity(pe);
+        HttpEntity entity = ise;
+
+        if (listener != null) {
+            entity = new ProgressHttpEntity(entity, listener);
+        }
+        req.setEntity(entity);
 
         return new ChunkedUploadRequest(req, session);
     }
